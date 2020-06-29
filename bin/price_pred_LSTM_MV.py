@@ -24,7 +24,7 @@ def prediction(papel):
     :type papel: string nome da ação
     """
 
-    num_days_validate = 20
+    num_days_validate = 10
 
     # Lê arquivo com dados historicos
     # Prepara dataset para uso
@@ -78,7 +78,7 @@ def prediction(papel):
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaled = scaler.fit_transform(values)
     # specify the number of lag days
-    num_days_lag = 2
+    num_days_lag = 1
     n_features = 6
     # frame as supervised learning
     reframed = series_to_supervised(scaled, num_days_lag, 1)
@@ -122,19 +122,15 @@ def prediction(papel):
     # design network
     model = Sequential()
     model.add(LSTM(64, return_sequences=True, input_shape=(train_x.shape[1], train_x.shape[2])))
-    # model.add(LSTM(64, input_shape=(train_x.shape[1], train_x.shape[2])))
+    model.add(LSTM(32, input_shape=(train_x.shape[1], train_x.shape[2])))
     model.add(Dense(1, activation=nn.relu))
-    model.compile(loss='mean_squared_error', optimizer='adam')
+    model.compile(loss='mean_squared_error', optimizer='nadam')
     # fit network
-    history = model.fit(train_x, train_y, epochs=15, batch_size=72, validation_data=(test_x, test_y), verbose=2,
+    history = model.fit(train_x, train_y, epochs=120, batch_size=32, validation_data=(test_x, test_y), verbose=2,
                         shuffle=False)
 
     # make a prediction
     yhat = model.predict(test_x)
-    # print(test_x)
-    # print(test_y)
-    # print(yhat)
-
     test_x = test_x.reshape((test_x.shape[0], num_days_lag * n_features))
     # invert scaling for forecast
     inv_yhat = concatenate((yhat, test_x[:, -5:]), axis=1)
@@ -150,12 +146,11 @@ def prediction(papel):
     previsao = model.predict(pred_x)
     pred_x = pred_x.reshape((test_x.shape[0], num_days_lag * n_features))
     # invert scaling for forecast
-
     inv_previsao = concatenate((previsao, pred_x[:, -5:]), axis=1)
     inv_previsao = scaler.inverse_transform(inv_previsao)
     # inv_yhat = scaler.inverse_transform(inv_yhat)
     inv_previsao = inv_previsao[:, 0]
-    inv_previsao = np.concatenate([[inv_yhat[0]], inv_previsao])  # dciona o primeiro elemento a previsao
+    inv_previsao = np.concatenate([[inv_yhat[0]], inv_previsao])  # adciona o primeiro elemento a previsao
 
     # calculate RMSE
     rmse = sqrt(mean_squared_error(inv_y, inv_yhat))
