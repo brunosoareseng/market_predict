@@ -6,15 +6,15 @@ import matplotlib.dates as mdates
 from pandas import read_csv
 from pandas import DataFrame
 from pandas import concat
+import os                                      # Mute tesnsorflow Warnings
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'       # Mute tesnsorflow Warnings
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import mean_squared_error
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import LSTM
-from tensorflow import nn
 from datetime import date
-import datetime as dt
 
 
 def prediction(papel):
@@ -24,7 +24,12 @@ def prediction(papel):
     :type papel: string nome da ação
     """
 
-    num_days_validate = 10
+    scale = True
+    num_days_validate = 15
+    # specify the number of lag days
+    num_days_lag = 45
+    # number of input features
+    n_features = 6
 
     # Lê arquivo com dados historicos
     # Prepara dataset para uso
@@ -75,11 +80,12 @@ def prediction(papel):
     values = values.astype('float32')
 
     # normalize features
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaled = scaler.fit_transform(values)
-    # specify the number of lag days
-    num_days_lag = 1
-    n_features = 6
+    if scale:
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        scaled = scaler.fit_transform(values)
+    else:
+        scaled = values
+
     # frame as supervised learning
     reframed = series_to_supervised(scaled, num_days_lag, 1)
 
@@ -103,8 +109,8 @@ def prediction(papel):
 
     # split into input and outputs
     n_obs = num_days_lag * n_features
-    train_x, train_y = train[:, :n_obs], train[:, -n_features]
-    test_x, test_y = test[:, :n_obs], test[:, -n_features]
+    train_x, train_y = train[:, :n_obs], train[:, -1]
+    test_x, test_y = test[:, :n_obs], test[:, -1]
     pred_x = test[:, n_features:n_features + n_obs]
 
     # print("Train shapes x and Y")
@@ -122,24 +128,26 @@ def prediction(papel):
     # design network
     model = Sequential()
     model.add(LSTM(64, return_sequences=True, input_shape=(train_x.shape[1], train_x.shape[2])))
-    model.add(LSTM(32, input_shape=(train_x.shape[1], train_x.shape[2])))
-    model.add(Dense(1, activation=nn.relu))
-    model.compile(loss='mean_squared_error', optimizer='nadam')
+    model.add(LSTM(64, input_shape=(train_x.shape[1], train_x.shape[2])))
+    model.add(Dense(1))  # , activation=nn.relu
+    model.compile(loss='mean_squared_error', optimizer='adam')
     # fit network
-    history = model.fit(train_x, train_y, epochs=120, batch_size=32, validation_data=(test_x, test_y), verbose=2,
-                        shuffle=False)
+    history = model.fit(train_x, train_y, epochs=30, batch_size=72, validation_data=(test_x, test_y), verbose=0,
+                        shuffle=True)
 
     # make a prediction
     yhat = model.predict(test_x)
     test_x = test_x.reshape((test_x.shape[0], num_days_lag * n_features))
     # invert scaling for forecast
     inv_yhat = concatenate((yhat, test_x[:, -5:]), axis=1)
-    inv_yhat = scaler.inverse_transform(inv_yhat)
+    if scale:
+        inv_yhat = scaler.inverse_transform(inv_yhat)
     inv_yhat = inv_yhat[:, 0]
     # invert scaling for actual
     test_y = test_y.reshape((len(test_y), 1))
     inv_y = concatenate((test_y, test_x[:, -5:]), axis=1)
-    inv_y = scaler.inverse_transform(inv_y)
+    if scale:
+        inv_y = scaler.inverse_transform(inv_y)
     inv_y = inv_y[:, 0]
 
     # Previsão
@@ -147,7 +155,8 @@ def prediction(papel):
     pred_x = pred_x.reshape((test_x.shape[0], num_days_lag * n_features))
     # invert scaling for forecast
     inv_previsao = concatenate((previsao, pred_x[:, -5:]), axis=1)
-    inv_previsao = scaler.inverse_transform(inv_previsao)
+    if scale:
+        inv_previsao = scaler.inverse_transform(inv_previsao)
     # inv_yhat = scaler.inverse_transform(inv_yhat)
     inv_previsao = inv_previsao[:, 0]
     inv_previsao = np.concatenate([[inv_yhat[0]], inv_previsao])  # adciona o primeiro elemento a previsao

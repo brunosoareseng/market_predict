@@ -28,11 +28,13 @@ def run_sim(file, start_date, end_date):
 
     for papel in dataset[0].values:
         get_stock_data(papel, start_date, end_date)
-        print(papel +" -> OK!")
+        print(papel + " -> OK!")
 
     for papel in dataset[0].values:
+        print("Treinando e prevendo para: " + papel)
         prediction(papel)
+        print("OK!")
 
 
 if __name__ == "__main__":
-    run_sim("dados/papeis.csv", "2020-01-01", date.today())
+    run_sim("dados/papeis.csv", "2015-01-01", date.today())
