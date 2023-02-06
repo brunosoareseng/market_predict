@@ -37,4 +37,4 @@ def run_sim(file, start_date, end_date):
 
 
 if __name__ == "__main__":
-    run_sim("dados/papeis.csv", "2015-01-01", date.today())
+    run_sim("~/dev/market_predict/dados/papeis.csv", "2015-01-01", date.today())

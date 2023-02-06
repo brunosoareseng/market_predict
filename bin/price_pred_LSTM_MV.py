@@ -34,7 +34,7 @@ def prediction(papel):
     # Lê arquivo com dados historicos
     # Prepara dataset para uso
 
-    dataset = read_csv("./dados/" + papel + '_dados.csv', index_col=0)
+    dataset = read_csv("~/dev/market_predict/dados/" + papel + '_dados.csv', index_col=0)
 
     # manually specify column names
     dataset.columns = ['high', 'low', 'open', 'close', 'volume', 'adj close']
@@ -188,6 +188,6 @@ def prediction(papel):
     plt.legend()
 
     # Plot save
-    # plt.show()
-    plt.savefig("./resultado/Previsão_"+str(date.today())+"_"+papel+".png", dpi=600)
+    plt.show()
+    plt.savefig("~/dev/market_predict/resultado/Previsão_"+str(date.today())+"_"+papel+".png", dpi=600)
     plt.clf()

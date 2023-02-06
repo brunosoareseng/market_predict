@@ -1,4 +1,5 @@
 import pandas_datareader.data as pdr
+import yfinance as yfin
 
 
 def get_stock_data(ticker, start_date, end_date):
@@ -13,12 +14,17 @@ def get_stock_data(ticker, start_date, end_date):
     :return: stock_data.csv
     """
     i = 1
-    all_data = pdr.DataReader(ticker, data_source='yahoo', start=start_date, end=end_date)
+    
+    yfin.pdr_override()
 
-    all_data.to_csv("./dados/stock_prices_full.csv")
+    all_data = pdr.DataReader(ticker, start=start_date, end=end_date)
 
-    all_data.to_csv("./dados/" + ticker + "_dados.csv")
+    all_data.to_csv("~/dev/market_predict/dados/stock_prices_full.csv")
+
+    all_data.to_csv("~/dev/market_predict/dados/" + ticker + "_dados.csv")
 
 
 if __name__ == "__main__":
-    get_stock_data("PETR4.SA", "2015-01-01", "2020-06-25")
+    yfin.pdr_override()
+    df = pdr.DataReader('PETR4.SA', start='2015-01-01', end='2020-06-25')
+    print(df)
